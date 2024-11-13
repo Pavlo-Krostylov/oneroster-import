@@ -69,21 +69,22 @@ class ImportService
     }
 
     /**
-     * @param $pathToFolder
-     * @param $options
+     * @param string $pathToFolder
+     * @param array $options
      * @return array
      * @throws \Exception
      */
-    public function importMultiple($pathToFolder, array $options = [])
+    public function importMultiple(string $pathToFolder, array $options = []): array
     {
         $this->options = array_merge($this->options, $options);
         $this->validateOptions();
         $results = [];
 
-        $availableTypes = $this->detectAvailableTypes($pathToFolder);
+        $this->setPathToFolder($pathToFolder);
+        $availableTypes = $this->detectAvailableTypes();
 
         foreach ($availableTypes as $availableType) {
-            $results[$availableType] = $this->import($pathToFolder . $availableType . '.csv', $availableType, $this->options);
+            $results[$availableType] = $this->import($this->pathToFolder . $availableType . '.csv', $availableType, $this->options);
         }
 
         return $results;
@@ -100,20 +101,19 @@ class ImportService
     /**
      * @param string $pathToFolder
      */
-    public function setPathToFolder(string $pathToFolder)
+    public function setPathToFolder(string $pathToFolder): void
     {
-        $this->pathToFolder = $pathToFolder;
+        $this->pathToFolder = $this->normalizePath($pathToFolder);
     }
 
     /**
-     * @param $pathToFolder
      * @return array
      * @throws \Exception
      */
-    private function detectAvailableTypes($pathToFolder)
+    public function detectAvailableTypes(): array
     {
         $types = [];
-        $result = $this->import($pathToFolder . 'manifest.csv', 'manifest', $this->options);
+        $result = $this->import($this->pathToFolder . 'manifest.csv', 'manifest', $this->options);
 
         foreach ($result as $row) {
             $property = $row['propertyName'];
@@ -133,7 +133,7 @@ class ImportService
     /**
      * @throws \Exception
      */
-    private function validateOptions()
+    private function validateOptions(): void
     {
         if (!isset($this->options['version'])) {
             throw new \Exception('Version should be specified as option');
@@ -142,5 +142,18 @@ class ImportService
         if (!isset($this->options['csvControl'])) {
             throw new \Exception('csvControl should be specified as option');
         }
+    }
+
+    /**
+     * @param string $path
+     * @return string
+     */
+    private function normalizePath(string $path): string
+    {
+        $last_char = substr($path, -1);
+        if($last_char !== '\\' && $last_char !== '/') {
+            $path .= '/';
+        }
+        return $path;
     }
 }
