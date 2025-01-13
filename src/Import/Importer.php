@@ -23,9 +23,10 @@ class Importer implements ImporterInterface
     public function import(array $header, array $data): ArrayCollection
     {
         $result = new ArrayCollection();
+        $headerSize = count($header);
 
         foreach ($data as $index => $row){
-            $rowWitHeader = array_combine($header, $row);
+            $rowWitHeader = array_combine($header, $this->fixRowSize($headerSize, $row));
             $rowWitHeader = $this->schemaValidator->validate($rowWitHeader);
 
             if (isset($rowWitHeader['sourcedId'])){
@@ -40,5 +41,24 @@ class Importer implements ImporterInterface
         }
 
         return $result;
+    }
+
+    /**
+     * @param int $rowSize
+     * @param array $data
+     * @return array
+     */
+    protected function fixRowSize(int $rowSize, array $data): array
+    {
+        $dataSize = count($data);
+        $diff = $rowSize - $dataSize;
+        if ($diff > 0) {
+            for ($i = 0; $i < $diff; $i++) {
+                $data[] = '';
+            }
+        } elseif ($diff < 0) {
+            $data = array_slice($data, 0, $rowSize);
+        }
+        return $data;
     }
 }
